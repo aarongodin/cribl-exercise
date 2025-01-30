@@ -33,7 +33,13 @@ Run the app through Node on your host machine with:
 
 ```sh
 npm start
-# or `npm run watch` for watch mode
+# or `npm run dev` for watch mode
+```
+
+Check that the server is healthy by requesting the `/health` path:
+
+```
+curl http://localhost:3000/health
 ```
 
 ### Running tests
