@@ -8,3 +8,4 @@
 # export HTTP_PORT=3000
 # export DEBUG=true
 # export LOG_FORMAT=console
+# export LOG_FILES_BASE_PATH="/Users/aarongodin/cribl-exercise/fixtures"

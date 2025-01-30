@@ -56,9 +56,57 @@ This project uses [Biome](https://biomejs.dev/) for linting. Run the linter with
 
 ## Usage
 
-### GET /files/{filename}
+### GET /files/{filename}?tail=10
 
 Reads a file by its filename in the configured root directory (e.g. `/var/log`), streaming lines from the file starting from the file end.
+
+Pass an optional `tail=` query parameter to control the number of lines streamed.
+
+## Monitoring / performance
+
+### How I would monitor this solution
+
+Assuming the concurrency is high for requests to the log files, I would track memory usage and kernel statistics such as count of open file descriptors. Memory usage increasing non-linearly with usage would likely indicate a leak around the `LineReader` implementation with how buffers are used.
+
+### Quick test (sanity check)
+
+I added a k6 test to the project to ensure that there was no obvious bottleneck in my implementation around the file system or stream processing. You can run this file with `k6 run k6/get-file.ts`.
+
+The test reads `/var/log/system.log`. On my machine (macOS), this file is ~8kB. Here are the k6 results I received for your reference (host machine is an M1 Macbook Air, base model):
+
+```
+     execution: local
+        script: k6/get-file.ts
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 10 max VUs, 1m30s max duration (incl. graceful stop):
+              * default: 10 looping VUs for 1m0s (gracefulStop: 30s)
+
+
+     ✓ is status 200
+
+     checks.........................: 100.00% 197578 out of 197578
+     data_received..................: 1.4 GB  23 MB/s
+     data_sent......................: 19 MB   316 kB/s
+     http_req_blocked...............: avg=1.28µs min=0s     med=1µs    max=6.66ms   p(90)=2µs    p(95)=2µs
+     http_req_connecting............: avg=13ns   min=0s     med=0s     max=537µs    p(90)=0s     p(95)=0s
+     http_req_duration..............: avg=3ms    min=1.78ms med=2.56ms max=190.15ms p(90)=3.59ms p(95)=4.82ms
+       { expected_response:true }...: avg=3ms    min=1.78ms med=2.56ms max=190.15ms p(90)=3.59ms p(95)=4.82ms
+     http_req_failed................: 0.00%   0 out of 197578
+     http_req_receiving.............: avg=1.92ms min=33µs   med=1.67ms max=163.29ms p(90)=2.26ms p(95)=2.99ms
+     http_req_sending...............: avg=3.92µs min=1µs    med=2µs    max=7.98ms   p(90)=5µs    p(95)=9µs
+     http_req_tls_handshaking.......: avg=0s     min=0s     med=0s     max=0s       p(90)=0s     p(95)=0s
+     http_req_waiting...............: avg=1.07ms min=391µs  med=908µs  max=159.65ms p(90)=1.36ms p(95)=1.8ms
+     http_reqs......................: 197578  3292.861076/s
+     iteration_duration.............: avg=3.03ms min=1.8ms  med=2.58ms max=190.24ms p(90)=3.64ms p(95)=4.88ms
+     iterations.....................: 197578  3292.861076/s
+     vus............................: 10      min=10               max=10
+     vus_max........................: 10      min=10               max=10
+```
+
+Notable stats are that, over the course of a minute test, the implementation sent 1.4GB of data serving the file repeatedly.
+
+This test is not meant to be a comprehensive performance test, but it could be used as a starting point to observe how the application responds with respect to CPU, memory and filesystem usage.
 
 ## Addendum
 

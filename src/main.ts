@@ -1,13 +1,13 @@
 import pino from "pino";
 
 import Hapi from "@hapi/hapi";
+import hapiPino from "hapi-pino";
 
 import { filesAPI } from "./api/files-api";
 import { loadConfig } from "./config";
 
 async function main() {
 	const config = await loadConfig();
-	const logger = pino();
 
 	const server = Hapi.server({
 		port: config.http.port,
@@ -24,13 +24,16 @@ async function main() {
 		},
 	});
 
-	await server.register(filesAPI);
-	await server.start();
+	await server.register(hapiPino);
 
-	logger.info(
-		{ port: config.http.port, host: config.http.host },
-		"http server started",
-	);
+	await server.register({
+		plugin: filesAPI,
+		options: {
+			basePath: config.logFilesBasePath,
+		},
+	});
+
+	await server.start();
 }
 
 main();

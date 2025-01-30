@@ -12,14 +12,24 @@ const NEW_LINE = "\n";
  */
 export class LineReader extends Readable {
 	private filePath = "";
+	private tail = 0;
+
 	private fd: FileHandle | null = null;
 	private pos = 0;
 	private remainder = "";
+
 	public lines = 0;
 
-	constructor(filePath: string) {
+	/**
+	 * Creates a new LineReader. `tail` can be passed to control the number of lines emitted, and a zero value indicates to read the entire file.
+	 *
+	 * @param filePath string
+	 * @param tail number
+	 */
+	constructor(filePath: string, tail = 0) {
 		super();
 		this.filePath = filePath;
+		this.tail = tail;
 	}
 
 	async _construct(callback: (err?: any) => void): Promise<void> {
@@ -35,10 +45,13 @@ export class LineReader extends Readable {
 
 	async _read(_: number): Promise<void> {
 		if (this.fd === null || this.pos <= 0) {
-			if (this.remainder.length > 0) {
-				this.pushLine(`${this.remainder}\n`);
+			if (this.remainder.length > 0 && this.lines !== this.tail) {
+				if (this.pushLine(`${this.remainder}\n`)) {
+					// after pushing the remainder as a line, there were still lines wanted, but
+					// we don't have any more file to read
+					this.push(null);
+				}
 			}
-			this.push(null);
 			return;
 		}
 
@@ -51,9 +64,15 @@ export class LineReader extends Readable {
 		).toString();
 	}
 
-	pushLine(line: string): void {
+	// pushLine returns true to indicate that the process should continue processing lines
+	pushLine(line: string): boolean {
 		this.lines++;
 		this.push(line);
+		if (this.tail >= 0 && this.tail === this.lines) {
+			this.push(null);
+			return false;
+		}
+		return true;
 	}
 
 	// pushBuffer reads lines from a Buffer in reverse order and pushes lines to the stream, returning the remainder as a buffer
@@ -70,7 +89,9 @@ export class LineReader extends Readable {
 				// we reached the start of the buffer without a delimeter, so return the remaining buffer
 				return buf.subarray(0, pos);
 			}
-			this.pushLine(`${buf.subarray(delim + 1, pos).toString()}\n`);
+			if (!this.pushLine(`${buf.subarray(delim + 1, pos).toString()}\n`)) {
+				return Buffer.from([]);
+			}
 			pos = delim;
 		}
 	}
