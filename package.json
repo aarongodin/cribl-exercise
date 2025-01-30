@@ -1,0 +1,39 @@
+{
+  "name": "@aarongodin/cribl-exercise",
+  "version": "0.1.0",
+  "description": "Cribl Exercise project",
+  "homepage": "https://github.com/aarongodin/cribl-exercise#readme",
+  "bugs": {
+    "url": "https://github.com/aarongodin/cribl-exercise/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/aarongodin/cribl-exercise.git"
+  },
+  "license": "UNLICENSED",
+  "author": "Aaron Godin <godinaaweb@gmail.com>",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "lint": "biome check src/**",
+    "build": "swc ./src/* -d dist -s --strip-leading-paths --ignore **/__tests__/*",
+    "dev": "tsx --watch src/main.ts",
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@hapi/hapi": "^21.3.12",
+    "pino": "^9.6.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@swc/cli": "^0.6.0",
+    "@swc/core": "^1.10.12",
+    "@swc/jest": "^0.2.37",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.12.0",
+    "jest": "^29.7.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

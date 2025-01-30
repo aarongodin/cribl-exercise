@@ -1,0 +1,10 @@
+# .envrc-example
+#
+# This file is meant for local development only.
+# Recommended workflow is to use a tool like direnv to add
+# the variables to your shell.
+
+# export HTTP_HOST=127.0.0.1
+# export HTTP_PORT=3000
+# export DEBUG=true
+# export LOG_FORMAT=console
