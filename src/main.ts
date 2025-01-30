@@ -2,6 +2,7 @@ import pino from "pino";
 
 import Hapi from "@hapi/hapi";
 
+import { filesAPI } from "./api/files-api";
 import { loadConfig } from "./config";
 
 async function main() {
@@ -16,13 +17,14 @@ async function main() {
 	server.route({
 		method: "GET",
 		path: "/health",
-		handler: (req, h) => {
+		handler: () => {
 			return {
 				message: "healthy",
 			};
 		},
 	});
 
+	await server.register(filesAPI);
 	await server.start();
 
 	logger.info(
