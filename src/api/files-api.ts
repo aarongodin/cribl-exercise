@@ -1,30 +1,49 @@
 import path from "node:path";
 import { LineReader } from "../reader/line-reader";
-import type { Plugin, RequestQuery } from "@hapi/hapi";
+import type { Plugin } from "@hapi/hapi";
+import Joi from "joi";
+import Boom from "@hapi/boom";
 
 type FilesAPIOptions = {
 	basePath: string;
 };
 
-function getTailQuery(q: Record<string, string>): number {
-	if (typeof q.tail === "string" && q.tail.length > 0) {
-		return Number.parseInt(q.tail, 10);
-	}
-	return 0;
-}
-
 export const filesAPI: Plugin<FilesAPIOptions> = {
-	name: "fileAPI",
+	name: "filesAPI",
+	version: "1.0.0",
 	register: async (server, options) => {
+		const basePath = path.resolve(options.basePath);
+
 		server.route({
 			method: "GET",
 			path: "/files/{filename}",
-			handler: async (req, h) => {
-				const lr = new LineReader(
-					path.resolve(options.basePath, req.params.filename),
-					getTailQuery(req.query),
-				);
-				return h.response(lr).type("text/plain");
+			options: {
+				validate: {
+					params: Joi.object({
+						filename: Joi.string()
+							.regex(/^[a-zA-Z0-9._-]+$/)
+							.required()
+							.messages({
+								"string.pattern.base":
+									"Invalid filename format. Only alphanumeric, dot, underscore, and hyphen are allowed.",
+							}),
+					}),
+					query: Joi.object().unknown(true),
+				},
+				handler: async (req, h) => {
+					try {
+						const filePath = path.join(basePath, req.params.filename);
+						if (!filePath.startsWith(basePath)) {
+							throw Boom.badRequest("invalid filename");
+						}
+
+						const lr = new LineReader(filePath, req.query as any);
+						return h.response(lr).type("text/plain");
+					} catch (err) {
+						console.error("File read error:", err);
+						return h.response("Internal Server Error").code(500);
+					}
+				},
 			},
 		});
 	},

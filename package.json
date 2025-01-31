@@ -22,9 +22,12 @@
     "start": "tsx src/main.ts"
   },
   "dependencies": {
+    "@hapi/boom": "^10.0.1",
     "@hapi/hapi": "^21.3.12",
     "hapi-pino": "^12.1.0",
-    "pino": "^9.6.0"
+    "joi": "^17.13.3",
+    "pino": "^9.6.0",
+    "re2": "^1.21.4"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
