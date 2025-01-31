@@ -1,13 +1,29 @@
-import pino from "pino";
-
 import Hapi from "@hapi/hapi";
 import hapiPino from "hapi-pino";
+import pino, { type LoggerOptions, type Logger } from "pino";
 
-import { filesAPI } from "./api/files-api";
-import { loadConfig } from "./config";
+import { logsAPI } from "./api/logs-api";
+import { type Config, loadConfig } from "./config";
+
+function newLogger(config: Config): Logger {
+	const opts: LoggerOptions = {};
+	if (config.log.format === "console") {
+		opts.transport = {
+			target: "pino-pretty",
+			options: {
+				colorize: true,
+			},
+		};
+	}
+	if (config.debug) {
+		opts.level = "debug";
+	}
+	return pino(opts);
+}
 
 async function main() {
 	const config = await loadConfig();
+	const logger = newLogger(config);
 
 	const server = Hapi.server({
 		port: config.http.port,
@@ -24,10 +40,15 @@ async function main() {
 		},
 	});
 
-	await server.register(hapiPino);
+	await server.register({
+		plugin: hapiPino,
+		options: {
+			instance: logger,
+		},
+	});
 
 	await server.register({
-		plugin: filesAPI,
+		plugin: logsAPI,
 		options: {
 			basePath: config.logFilesBasePath,
 		},

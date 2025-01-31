@@ -56,11 +56,36 @@ This project uses [Biome](https://biomejs.dev/) for linting. Run the linter with
 
 ## Usage
 
-### GET /files/{filename}?tail=10
+### GET /logs/{filename}
 
-Reads a file by its filename in the configured root directory (e.g. `/var/log`), streaming lines from the file starting from the file end.
+Reads a log file in its entirety by its filename in the configured root directory (e.g. `/var/log`), streaming lines from the file starting from the file end.
 
-Pass an optional `tail=` query parameter to control the number of lines streamed.
+The response for this endpoint uses `Transfer-Encoding: chunked` and `Content-Type: application/jsonl`.
+
+#### Optional query params
+
+* Set the `lines=n` query parameter to control the number of lines streamed.
+* Filter lines on a regular expression by passing the `regex=abc` query param. Regexes should be URI encoded to be read correctly.
+
+### Configuration
+
+Settings for the app are provided by environment variables.
+
+#### `HTTP_HOST` and `HTTP_PORT`
+
+Set an HTTP hostname and port for the TCP server to listen on.
+
+#### `DEBUG`
+
+Set to `true` to enable debug logging on the API.
+
+#### `LOG_FORMAT`
+
+Set to any one of `json` or `console` to control the style of logs output by this server (runtime logging, not the log format of the ).
+
+#### `LOG_FILES_BASE_PATH`
+
+Set to an absolute path to control where log files are read from (default `/var/log`).
 
 ## Monitoring / performance
 

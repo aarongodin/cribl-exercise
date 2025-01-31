@@ -7,7 +7,7 @@ export const options = {
 };
 
 export default function () {
-	const res = http.get("http://localhost:3000/files/system.log");
+	const res = http.get("http://localhost:3000/logs/system.log");
 	check(res, {
 		"is status 200": (r) => r.status === 200,
 	});

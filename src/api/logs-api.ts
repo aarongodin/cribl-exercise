@@ -3,20 +3,21 @@ import { LineReader } from "../reader/line-reader";
 import type { Plugin } from "@hapi/hapi";
 import Joi from "joi";
 import Boom from "@hapi/boom";
+import { JSONLinesTransform } from "./jsonl";
 
-type FilesAPIOptions = {
+type LogsAPIOptions = {
 	basePath: string;
 };
 
-export const filesAPI: Plugin<FilesAPIOptions> = {
-	name: "filesAPI",
-	version: "1.0.0",
+export const logsAPI: Plugin<LogsAPIOptions> = {
+	name: "logsAPI",
+	version: "0.1.0",
 	register: async (server, options) => {
 		const basePath = path.resolve(options.basePath);
 
 		server.route({
 			method: "GET",
-			path: "/files/{filename}",
+			path: "/logs/{filename}",
 			options: {
 				validate: {
 					params: Joi.object({
@@ -31,18 +32,14 @@ export const filesAPI: Plugin<FilesAPIOptions> = {
 					query: Joi.object().unknown(true),
 				},
 				handler: async (req, h) => {
-					try {
-						const filePath = path.join(basePath, req.params.filename);
-						if (!filePath.startsWith(basePath)) {
-							throw Boom.badRequest("invalid filename");
-						}
-
-						const lr = new LineReader(filePath, req.query as any);
-						return h.response(lr).type("text/plain");
-					} catch (err) {
-						console.error("File read error:", err);
-						return h.response("Internal Server Error").code(500);
+					const filePath = path.join(basePath, req.params.filename);
+					if (!filePath.startsWith(basePath)) {
+						throw Boom.badRequest("invalid filename");
 					}
+					const lr = new LineReader(filePath, req.query as any);
+					return h
+						.response(lr.pipe(new JSONLinesTransform()))
+						.type("application/jsonl");
 				},
 			},
 		});
