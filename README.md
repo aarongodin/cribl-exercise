@@ -5,7 +5,7 @@
 Ensure you have the necessary pre-requisites to build and test this application:
 
 * Node.js 22 or greater
-* Docker
+* Docker & docker-compose
 
 Clone the repository and install the dependencies:
 
@@ -87,6 +87,10 @@ Set to any one of `json` or `console` to control the style of logs output by thi
 
 Set to an absolute path to control where log files are read from (default `/var/log`).
 
+#### `SECONDARY_HOSTNAMES`
+
+Set a comma-separated list of secondary servers hostnames. Setting this value allows a primary server to aggregate output of the same log file across multiple servers. Defaults to an empty list.
+
 ## Monitoring / performance
 
 ### How I would monitor this solution
@@ -132,6 +136,33 @@ The test reads `/var/log/system.log`. On my machine (macOS), this file is ~8kB. 
 Notable stats are that, over the course of a minute test, the implementation sent 1.4GB of data serving the file repeatedly.
 
 This test is not meant to be a comprehensive performance test, but it could be used as a starting point to observe how the application responds with respect to CPU, memory and filesystem usage.
+
+## Log aggregation
+
+This app supports manually defining a list of secondary servers (no automated solution around leader election is implemented but would be advisable in a real-world situation). Given a list of secondary servers is set through configuration (`SECONDARY_HOSTNAMES`, see above), that server will act as a primary and pipe output of the same log file from each secondary server to the primary.
+
+### Example setup
+
+The server can be built and run through Docker, and the project has a `docker-compose.yaml` which starts three instances of the app. The `fixtures` directory is mounted at `/var/log`.
+
+Here are the two steps needed to run the example:
+
+```
+./build/image.sh
+docker-compose up -d
+```
+
+Check the status of the services with `docker-compose logs` to ensure they each started.
+
+Make a request to the primary server with:
+
+```
+curl http://localhost:3000/logs/caddy.log
+```
+
+Observe the response and see that logs have been loaded across all three services (`logs00`, `logs01` and `logs02`).
+
+The logs from both the primary server and the secondary servers are streamed together, so there is no guarantee currently about the order of the logs. However, if the ouput were processed and filtered to a single value in the `svc` field in the JSON line, those logs are guaranteed to be in the expected reverse order.
 
 ## Addendum
 

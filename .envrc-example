@@ -9,3 +9,5 @@
 # export DEBUG=true
 # export LOG_FORMAT=json
 # export LOG_FILES_BASE_PATH="/Users/aarongodin/cribl-exercise/fixtures"
+# export SERVICE_NAME="logs00"
+# export SECONDARY_HOSTNAMES=""

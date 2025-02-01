@@ -1,0 +1,39 @@
+services:
+  logs00:
+    image: cribl-exercise
+    environment:
+      SERVICE_NAME: logs00
+      LOG_FORMAT: json
+      SECONDARY_HOSTNAMES: "logs01:3000,logs02:3000"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./fixtures:/var/log
+    networks:
+      - logs_network
+
+  logs01:
+    image: cribl-exercise
+    environment:
+      SERVICE_NAME: logs01
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./fixtures:/var/log
+    networks:
+      - logs_network
+
+  logs02:
+    image: cribl-exercise
+    environment:
+      SERVICE_NAME: logs02
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./fixtures:/var/log
+    networks:
+      - logs_network
+
+networks:
+  logs_network:
+    driver: bridge

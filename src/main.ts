@@ -34,27 +34,46 @@ async function main() {
 		method: "GET",
 		path: "/health",
 		handler: () => {
-			return {
-				message: "healthy",
-			};
+			return { message: "healthy" };
 		},
 	});
 
 	await server.register({
 		plugin: hapiPino,
-		options: {
-			instance: logger,
-		},
+		options: { instance: logger },
 	});
 
 	await server.register({
 		plugin: logsAPI,
 		options: {
 			basePath: config.logFilesBasePath,
+			serviceName: config.serviceName,
+			secondaryHostnames: config.secondaryHostnames,
+			logger,
 		},
 	});
 
 	await server.start();
+
+	const shutdown = async (signal: any) => {
+		logger.info(`Received ${signal}. Shutting down...`);
+
+		try {
+			await server.stop({ timeout: 5000 });
+			logger.info("Server stopped cleanly.");
+		} catch (err) {
+			logger.error("Error during shutdown", err);
+		} finally {
+			logger.info("Exiting process.");
+			process.exit(0);
+		}
+	};
+
+	process.on("SIGINT", shutdown);
+	process.on("SIGTERM", shutdown);
 }
 
-main();
+main().catch((err) => {
+	console.error("Failed to start server", err);
+	process.exit(1);
+});

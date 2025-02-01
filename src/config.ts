@@ -8,6 +8,8 @@ export type Config = {
 		format: string;
 	};
 	logFilesBasePath: string;
+	serviceName: string;
+	secondaryHostnames: string[];
 };
 
 function getNumber(name: string, def: number): number {
@@ -32,6 +34,12 @@ function getString(name: string, def: string): string {
 }
 
 export function loadConfig(): Promise<Config> {
+	const secondary = process.env.SECONDARY_HOSTNAMES;
+	const secondaryHostnames = [];
+	if (typeof secondary === "string" && secondary.length > 0) {
+		secondaryHostnames.push(...secondary.split(",").map((h) => h.trim()));
+	}
+
 	return Promise.resolve({
 		http: {
 			port: getNumber("HTTP_PORT", 3000),
@@ -39,8 +47,10 @@ export function loadConfig(): Promise<Config> {
 		},
 		debug: getBoolean("DEBUG", false),
 		log: {
-			format: getString("LOG_FORMAT", "console"),
+			format: getString("LOG_FORMAT", "json"),
 		},
 		logFilesBasePath: getString("LOG_FILES_BASE_PATH", "/var/log"),
+		serviceName: getString("SERVICE_NAME", ""),
+		secondaryHostnames,
 	});
 }
