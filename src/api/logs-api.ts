@@ -1,11 +1,11 @@
 import path from "node:path";
-import { once } from "node:events";
-import { LineReader } from "../reader/line-reader";
+import { LineReader, newLineReaderOptions } from "../reader/line-reader";
 import type { Plugin } from "@hapi/hapi";
 import Joi from "joi";
 import Boom from "@hapi/boom";
 import { JSONLinesTransform } from "./jsonl";
 import { PassThrough } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import qs from "node:querystring";
 import type { Logger } from "pino";
 
@@ -13,6 +13,7 @@ type LogsAPIOptions = {
 	basePath: string;
 	serviceName: string;
 	secondaryHostnames: string[];
+	logger: Logger;
 };
 
 export const logsAPI: Plugin<LogsAPIOptions> = {
@@ -45,7 +46,8 @@ export const logsAPI: Plugin<LogsAPIOptions> = {
 					const out = new PassThrough();
 					const localTransformed = new LineReader(
 						filePath,
-						req.query as any,
+						options.logger,
+						newLineReaderOptions(req.query),
 					).pipe(new JSONLinesTransform({ svc: options.serviceName }));
 					localTransformed.pipe(out, {
 						end: false,
@@ -81,13 +83,7 @@ export const logsAPI: Plugin<LogsAPIOptions> = {
 									return;
 								}
 
-								while (true) {
-									const { done, value } = await reader.read();
-									if (done) {
-										break;
-									}
-									out.write(value);
-								}
+								await pipeline(res.body, out);
 							} catch (err) {
 								req.logger.error(
 									{ hostname, err },
@@ -97,11 +93,9 @@ export const logsAPI: Plugin<LogsAPIOptions> = {
 						},
 					);
 
-					await Promise.all([
-						...secondaryServers,
-						once(localTransformed, "end"),
-					]);
-					out.end();
+					localTransformed.on("end", () => {
+						Promise.all(secondaryServers).then(() => out.end());
+					});
 					return h.response(out).type("application/jsonl");
 				},
 			},

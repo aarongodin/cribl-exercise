@@ -64,7 +64,7 @@ The response for this endpoint uses `Transfer-Encoding: chunked` and `Content-Ty
 
 #### Optional query params
 
-* Set the `lines=n` query parameter to control the number of lines streamed.
+* Set the `lineCount=n` query parameter to control the number of lines streamed.
 * Filter lines on a regular expression by passing the `regex=abc` query param. Regexes should be URI encoded to be read correctly.
 
 ### Configuration

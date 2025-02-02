@@ -1,5 +1,6 @@
 import fs, { type FileHandle } from "node:fs/promises";
 import { Readable } from "node:stream";
+import type { Logger } from "pino";
 import RE2 from "re2";
 
 const NEW_LINE = "\n";
@@ -12,6 +13,19 @@ type LineReaderOptions = {
 	lineCount: number;
 	regex?: string;
 };
+
+export function newLineReaderOptions(
+	query: Record<string, string>,
+): LineReaderOptions {
+	const opts = {
+		lineCount: 0,
+		regex: query.regex,
+	};
+	if (query.lineCount) {
+		opts.lineCount = Number.parseInt(query.lineCount, 10);
+	}
+	return opts;
+}
 
 export class LineFilter {
 	private regex?: RE2;
@@ -44,6 +58,7 @@ export class LineFilter {
  */
 export class LineReader extends Readable {
 	private filePath = "";
+	private logger: Logger;
 	private lineCount = 0;
 	private lineFilter: LineFilter;
 
@@ -61,10 +76,12 @@ export class LineReader extends Readable {
 	 */
 	constructor(
 		filePath: string,
+		logger: Logger,
 		options: LineReaderOptions = DefaultLineReaderOptions,
 	) {
 		super();
 		this.filePath = filePath;
+		this.logger = logger;
 		this.lineFilter = new LineFilter(options);
 		this.lineCount = options.lineCount;
 	}
@@ -87,12 +104,17 @@ export class LineReader extends Readable {
 				this.push(this.remainder);
 			}
 			this.push(null);
+			await this.fd?.close();
 			return;
 		}
 
 		const nextBytes = Math.min(chunkSize, this.pos);
 		this.pos = this.pos - nextBytes;
 		const buf = Buffer.alloc(nextBytes);
+		this.logger.debug(
+			{ bytes: nextBytes, pos: this.pos, filePath: this.filePath },
+			"reading chunk",
+		);
 		await this.fd.read(buf, 0, nextBytes, this.pos);
 		this.remainder = this.pushBuffer(
 			Buffer.concat([buf, Buffer.from(this.remainder)]),

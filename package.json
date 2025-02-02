@@ -19,7 +19,7 @@
     "lint": "biome check src/**",
     "build": "tsc",
     "dev": "nodemon --watch \"src/**\" --ext \"ts,json\" --ignore \"src/**/*.test.ts\" --exec \"ts-node src/main.ts\"",
-    "start": "node dist/main.js"
+    "start": "ts-node dist/main.js"
   },
   "dependencies": {
     "@hapi/boom": "^10.0.1",
