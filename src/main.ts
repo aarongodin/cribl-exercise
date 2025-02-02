@@ -49,7 +49,6 @@ async function main() {
 			basePath: config.logFilesBasePath,
 			serviceName: config.serviceName,
 			secondaryHostnames: config.secondaryHostnames,
-			logger,
 		},
 	});
 

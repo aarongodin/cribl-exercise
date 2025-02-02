@@ -13,7 +13,6 @@ type LogsAPIOptions = {
 	basePath: string;
 	serviceName: string;
 	secondaryHostnames: string[];
-	logger: Logger;
 };
 
 export const logsAPI: Plugin<LogsAPIOptions> = {
@@ -21,7 +20,6 @@ export const logsAPI: Plugin<LogsAPIOptions> = {
 	version: "0.1.0",
 	register: async (server, options: LogsAPIOptions) => {
 		const basePath = path.resolve(options.basePath);
-		const log = options.logger;
 
 		server.route({
 			method: "GET",
@@ -83,15 +81,13 @@ export const logsAPI: Plugin<LogsAPIOptions> = {
 									return;
 								}
 
-								await (async () => {
-									while (true) {
-										const { done, value } = await reader.read();
-										if (done) {
-											break;
-										}
-										out.write(value);
+								while (true) {
+									const { done, value } = await reader.read();
+									if (done) {
+										break;
 									}
-								})();
+									out.write(value);
+								}
 							} catch (err) {
 								req.logger.error(
 									{ hostname, err },
