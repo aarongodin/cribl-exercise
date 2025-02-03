@@ -1,5 +1,6 @@
 import path from "node:path";
 import { LineReader, newLineReaderOptions } from "../reader/line-reader";
+import fs from "node:fs/promises";
 import type { Plugin } from "@hapi/hapi";
 import Joi from "joi";
 import Boom from "@hapi/boom";
@@ -43,15 +44,25 @@ export const logsAPI: Plugin<LogsAPIOptions> = {
           if (!filePath.startsWith(basePath)) {
             throw Boom.badRequest("invalid filename");
           }
+
           const out = new PassThrough();
-          const localTransformed = new LineReader(
-            filePath,
-            options.logger,
-            newLineReaderOptions(req.query),
-          ).pipe(new JSONLinesTransform({ svc: options.serviceName }));
-          localTransformed.pipe(out, {
-            end: false,
-          });
+          let localPipeline = Promise.resolve();
+
+          try {
+            const stats = await fs.stat(filePath);
+            const localTransformed = new LineReader(
+              filePath,
+              stats.size,
+              options.logger,
+              newLineReaderOptions(req.query),
+            ).pipe(new JSONLinesTransform({ svc: options.serviceName }));
+            localPipeline = pipeline(localTransformed, out);
+          } catch (err: any) {
+            if (err.code && err.code === "ENOENT") {
+              throw Boom.notFound("file not found");
+            }
+            throw Boom.internal(err);
+          }
 
           const secondaryServers = options.secondaryHostnames.map(
             async (hostname) => {
@@ -93,9 +104,18 @@ export const logsAPI: Plugin<LogsAPIOptions> = {
             },
           );
 
-          localTransformed.on("end", () => {
-            Promise.all(secondaryServers).then(() => out.end());
-          });
+          localPipeline
+            .then(() => Promise.allSettled(secondaryServers))
+            .then(() => out.end())
+            .catch((err) => {
+              if (err && err.code === "ERR_STREAM_PREMATURE_CLOSE") {
+                req.logger.warn({ filePath }, "stream closed by client");
+              } else {
+                throw Boom.internal(err);
+              }
+              out.destroy(err);
+            });
+
           return h.response(out).type("application/jsonl");
         },
       },

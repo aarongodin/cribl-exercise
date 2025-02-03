@@ -76,20 +76,20 @@ export class LineReader extends Readable {
    */
   constructor(
     filePath: string,
+    size: number,
     logger: Logger,
     options: LineReaderOptions = DefaultLineReaderOptions,
   ) {
     super();
     this.filePath = filePath;
     this.logger = logger;
+    this.pos = size;
     this.lineFilter = new LineFilter(options);
     this.lineCount = options.lineCount;
   }
 
   async _construct(callback: (err?: any) => void): Promise<void> {
     try {
-      const stats = await fs.stat(this.filePath);
-      this.pos = stats.size;
       this.fd = await fs.open(this.filePath, "r");
       callback();
     } catch (err) {
